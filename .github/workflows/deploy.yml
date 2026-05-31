@@ -1,0 +1,55 @@
+# CI/CD pipeline — validates the site and deploys it to GitHub Pages.
+# Runs automatically on every push to `main` (and can be run manually).
+name: Deploy to GitHub Pages
+
+# --- WHEN the pipeline runs (triggers) ---
+on:
+  push:
+    branches: [main]      # every push to main
+  workflow_dispatch:      # ...or a manual "Run workflow" click
+
+# Permissions this workflow needs to publish Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; don't cancel an in-progress one
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # --- STAGE 1: build/verify (the "test gate") ---
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+
+      - name: Verify the site is valid
+        run: |
+          test -f index.html || (echo "❌ index.html is missing" && exit 1)
+          grep -q "</html>" index.html || (echo "❌ index.html looks malformed" && exit 1)
+          test -d photos || echo "⚠️  no photos/ folder (ok if intentional)"
+          echo "✅ Site files look good"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Package the site for deployment
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'   # publish the whole repo root (index.html lives here)
+
+  # --- STAGE 2: deploy (only runs if build passed) ---
+  deploy:
+    needs: build      # gate: deploy waits for build/verify to succeed
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

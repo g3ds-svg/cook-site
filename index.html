@@ -313,7 +313,11 @@
   .poprow{position:relative}
   .poprow::after{content:"";position:absolute;right:0;top:32px;bottom:8px;width:40px;pointer-events:none;
     background:linear-gradient(90deg,transparent,var(--bg))}
-  @media(prefers-reduced-motion:reduce){.orderbar.show #ob-send{animation:none}.bump{animation:none}}
+  .fly{position:fixed;width:20px;height:20px;border-radius:50%;background:var(--accent);z-index:70;pointer-events:none;
+    box-shadow:0 4px 12px rgba(192,73,47,.5);transition:transform .6s cubic-bezier(.2,.7,.3,1),opacity .6s ease}
+  .confetti{position:fixed;width:8px;height:8px;border-radius:2px;z-index:80;pointer-events:none;
+    transition:transform .9s ease-out,opacity .9s ease-out}
+  @media(prefers-reduced-motion:reduce){.orderbar.show #ob-send{animation:none}.bump{animation:none}.fly,.confetti{display:none}}
   .toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
     background:var(--ink);color:#fff;padding:10px 18px;border-radius:50px;font-size:.86rem;font-weight:600;
     transition:opacity .25s,transform .25s;z-index:60;pointer-events:none}
@@ -529,15 +533,39 @@
       host.appendChild(block);
     });
     host.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{const[n,i]=b.dataset.size.split("|");sizeSel[n]=+i;render();});
-    host.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>change(b.dataset.inc,1));
-    host.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>change(b.dataset.dec,-1));
+    host.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>change(b.dataset.inc,1,b));
+    host.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>change(b.dataset.dec,-1,b));
     io.disconnect(); document.querySelectorAll(".reveal").forEach(el=>io.observe(el)); attachSpy();
   }
-  function change(name,delta){
+  const reduceMotion=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function buzz(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+  function flyToCart(src){
+    if(reduceMotion||!src) return;
+    const s=src.getBoundingClientRect();
+    const tx=innerWidth/2, ty=innerHeight-40;
+    const dot=document.createElement("div"); dot.className="fly";
+    dot.style.left=(s.left+s.width/2-10)+"px"; dot.style.top=(s.top+s.height/2-10)+"px";
+    document.body.appendChild(dot);
+    requestAnimationFrame(()=>{dot.style.transform=`translate(${tx-(s.left+s.width/2)}px,${ty-(s.top+s.height/2)}px) scale(.35)`;dot.style.opacity="0";});
+    setTimeout(()=>dot.remove(),640);
+  }
+  function confetti(){
+    if(reduceMotion) return;
+    const cols=["#C0492F","#25D366","#E0A33A","#2E7D52","#D9A441"], W=innerWidth, Y=innerHeight-72;
+    for(let i=0;i<18;i++){
+      const c=document.createElement("div"); c.className="confetti"; c.style.background=cols[i%cols.length];
+      c.style.left=(W*0.18+W*0.64*Math.random())+"px"; c.style.top=Y+"px";
+      document.body.appendChild(c);
+      requestAnimationFrame(()=>{c.style.transform=`translate(${(Math.random()-0.5)*180}px,${-60-Math.random()*80}px) rotate(${Math.random()*360}deg)`;c.style.opacity="0";});
+      setTimeout(()=>c.remove(),900);
+    }
+  }
+  function change(name,delta,srcEl){
+    if(delta>0) flyToCart(srcEl);
     const d=MENU.find(m=>m.name===name), m=metaFor(d), key=m.display;
     const q=Math.max(0,(cart[key]?.qty||0)+delta);
     if(q===0) delete cart[key]; else cart[key]={display:m.display,price:m.price,unit:m.unit,qty:q};
-    if(delta>0) toast(m.display+" added");
+    if(delta>0){ toast(m.display+" added"); buzz(12); }
     render(); updateBar();
   }
   function cartTotals(){
@@ -553,14 +581,18 @@
     tE.textContent = total>0 ? money(total)+(hasAsk?" + ask":"") : (hasAsk?"price on WhatsApp":"");
     document.getElementById("orderbar").classList.toggle("show",count>0);
     if(count>prevCount){[cE,tE].forEach(e=>{e.classList.remove("bump");void e.offsetWidth;e.classList.add("bump");});}
+    if(prevCount===0&&count>0) setTimeout(confetti,280);
     prevCount=count;
   }
   document.getElementById("ob-send").onclick=()=>{
     const {e,total,hasAsk}=cartTotals(); if(!e.length) return;
-    let msg="Hi "+brand+", I'd like to order:\n";
-    e.forEach(x=>{ msg += "• " + (x.price==null ? `${x.qty} × ${x.display}` : `${x.qty} × ${x.display} — ${money(x.qty*x.price)}${x.unit?" ("+x.unit.replace('/','per ')+")":""}`) + "\n"; });
-    if(total>0) msg += `\nSubtotal: ${money(total)}`+(hasAsk?" (+ items priced on request)":"");
-    msg += `\n(Paying cash on pickup)`;
+    let msg="*New order — "+brand+"*\n";
+    msg+="———————————————\n";
+    e.forEach(x=>{ msg += (x.price==null ? `• ${x.qty}× ${x.display} — _price on request_` : `• ${x.qty}× ${x.display} — ${money(x.qty*x.price)}`) + "\n"; });
+    msg+="———————————————\n";
+    if(total>0) msg += `*Subtotal: ${money(total)}*`+(hasAsk?" _(+ items priced on request)_":"")+"\n";
+    msg += `Payment: cash on pickup\n\n`;
+    msg += `Name: \nPickup time: `;
     window.open(waBase(msg),"_blank");
   };
   let toastT;
@@ -597,7 +629,7 @@
         `<div class="pop-card"><div class="ph">${imgTag(d)}</div><div class="pb"><div class="pn">${d.name}</div>`+
         `<div class="pr"><span class="pp">${price}</span><button class="add" data-inc="${d.name}">＋</button></div></div></div>`);
     });
-    strip.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>change(b.dataset.inc,1));
+    strip.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>change(b.dataset.inc,1,b));
   }
   function renderCombos(){
     const g=document.getElementById("combo-grid");
@@ -606,7 +638,7 @@
       const price=c.price==null?'<span class="cp" style="color:var(--accent);font-size:.86rem">Ask on WhatsApp</span>':`<span class="cp">${money(c.price)}</span>`;
       const badge=c.badge?`<span class="cbadge">${c.badge}</span>`:"";
       const serves=c.serves?`<div class="cserves">${c.serves}</div>`:"";
-      const link=waBase("Hi "+brand+", I'd like to order the "+c.name+(c.serves?" ("+c.serves+")":"")+":\n"+c.items.map(i=>"• "+i).join("\n")+(c.price!=null?"\nPrice: "+money(c.price):"")+"\n(Paying cash on pickup)");
+      const link=waBase("*New order — "+brand+"*\n———————————————\n*"+c.name+"*"+(c.serves?" ("+c.serves+")":"")+"\n"+c.items.map(i=>"• "+i).join("\n")+"\n———————————————\n"+(c.price!=null?"*Price: "+money(c.price)+"*\n":"")+"Payment: cash on pickup\n\nName: \nPickup time: ");
       g.insertAdjacentHTML("beforeend",
         `<div class="combo reveal${c.badge==='Most popular'?' feat':''}">${badge}<h3>${c.name}</h3>${serves}<ul>${items}</ul><div class="cf">${price}<a class="btn btn-dark" href="${link}" target="_blank">Order pack</a></div></div>`);
     });
