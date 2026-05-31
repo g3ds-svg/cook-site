@@ -55,7 +55,9 @@
 
   // --- Tier 0 observability (fill these in to activate; structured events fire regardless) ---
   const OBS = {
-    ga4Id:     "",     // Google Analytics 4 ID, e.g. "G-XXXXXXXXXX"
+    umamiId:   "",     // Umami website ID (privacy-first analytics — recommended). Paste yours here.
+    umamiSrc:  "https://cloud.umami.is/script.js",  // Umami Cloud (or your self-hosted URL)
+    ga4Id:     "",     // Google Analytics 4 ID (optional; not privacy-first)
     sentryDsn: "",     // Sentry DSN for error tracking
     endpoint:  "",     // Tier 1 hook: your own events API (sendBeacon). Leave blank for now.
     debug:     true,   // log events to the browser console
@@ -446,6 +448,9 @@
 
   // ---------- Tier 0 observability ----------
   (function initObs(){
+    if(OBS.umamiId){
+      const u=document.createElement("script"); u.defer=true; u.src=OBS.umamiSrc; u.setAttribute("data-website-id",OBS.umamiId); document.head.appendChild(u);
+    }
     if(OBS.ga4Id){
       const g=document.createElement("script"); g.async=true; g.src="https://www.googletagmanager.com/gtag/js?id="+OBS.ga4Id; document.head.appendChild(g);
       window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);}; gtag("js",new Date()); gtag("config",OBS.ga4Id);
@@ -459,6 +464,7 @@
     props=props||{};
     const payload=Object.assign({event:event,ts:Date.now(),path:location.pathname},props);
     if(OBS.debug) console.log("[track]",event,props);
+    try{ if(OBS.umamiId&&window.umami) umami.track(event,props); }catch(_){}
     try{ if(OBS.ga4Id&&window.gtag) gtag("event",event,props); }catch(_){}
     try{ if(OBS.endpoint) navigator.sendBeacon(OBS.endpoint,JSON.stringify(payload)); }catch(_){}
   }
@@ -624,12 +630,10 @@
   }
   document.getElementById("ob-send").onclick=()=>{
     const {e,total,hasAsk}=cartTotals(); if(!e.length) return;
-    let msg="*New order — "+brand+"*\n";
-    msg+="———————————————\n";
-    e.forEach(x=>{ msg += (x.price==null ? `• ${x.qty}× ${x.display} — _price on request_` : `• ${x.qty}× ${x.display} — ${money(x.qty*x.price)}`) + "\n"; });
-    msg+="———————————————\n";
-    if(total>0) msg += `*Subtotal: ${money(total)}*`+(hasAsk?" _(+ items priced on request)_":"")+"\n";
-    msg += `Payment: cash on pickup\n\n`;
+    let msg="🧾 *New order — "+brand+"*\n\n";
+    e.forEach(x=>{ msg += (x.price==null ? `• ${x.qty}× ${x.display} — price on request` : `• ${x.qty}× ${x.display} — ${money(x.qty*x.price)}`) + "\n"; });
+    if(total>0) msg += `\n*Subtotal: ${money(total)}*`+(hasAsk?" (+ items priced on request)":"")+"\n";
+    msg += `💵 Payment: cash on pickup\n\n`;
     msg += `Name: \nPickup time: `;
     track("order_submit",{item_count:e.reduce((s,x)=>s+x.qty,0),subtotal:total,has_ask:hasAsk,items:e.map(x=>({name:x.display,qty:x.qty,price:x.price}))});
     try{navigator.vibrate&&navigator.vibrate([12,40,16]);}catch(_){}
@@ -678,7 +682,7 @@
       const price=c.price==null?'<span class="cp" style="color:var(--accent);font-size:.86rem">Ask on WhatsApp</span>':`<span class="cp">${money(c.price)}</span>`;
       const badge=c.badge?`<span class="cbadge">${c.badge}</span>`:"";
       const serves=c.serves?`<div class="cserves">${c.serves}</div>`:"";
-      const link=waBase("*New order — "+brand+"*\n———————————————\n*"+c.name+"*"+(c.serves?" ("+c.serves+")":"")+"\n"+c.items.map(i=>"• "+i).join("\n")+"\n———————————————\n"+(c.price!=null?"*Price: "+money(c.price)+"*\n":"")+"Payment: cash on pickup\n\nName: \nPickup time: ");
+      const link=waBase("🧾 *New order — "+brand+"*\n\n*"+c.name+"*"+(c.serves?" ("+c.serves+")":"")+"\n"+c.items.map(i=>"• "+i).join("\n")+"\n"+(c.price!=null?"\n*Price: "+money(c.price)+"*\n":"")+"💵 Payment: cash on pickup\n\nName: \nPickup time: ");
       g.insertAdjacentHTML("beforeend",
         `<div class="combo reveal${c.badge==='Most popular'?' feat':''}">${badge}<h3>${c.name}</h3>${serves}<ul>${items}</ul><div class="cf">${price}<a class="btn btn-dark" href="${link}" target="_blank" data-combo="${c.name}">Order pack</a></div></div>`);
     });

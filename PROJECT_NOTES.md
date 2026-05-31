@@ -32,10 +32,11 @@ A mobile-first ordering site for Rinkal, a home cook serving 100% vegetarian Guj
 - [ ] **Dal Makhani price** discrepancy: owner's grid showed $6, but sabjis are 8oz $10 / 16oz $13 — confirm.
 - [ ] **Sabji curry photos** missing (paneer gravies, aloo gobi, bhindi, baingan, channa, kadhi, kofta) — need a 3rd menu-grid image to slice.
 - [ ] **Combo & tiffin prices** are my suggestions — confirm real numbers (rice & sweet-box prices unknown).
-- [ ] **Latest changes not yet pushed** (clean order message + dopamine animations).
+- [ ] **PUSH PENDING** — run `git add . && git commit -m "updates" && git push` to deploy the latest. Files on disk are current; GitHub/live site may be behind. Unpushed work includes: improved WhatsApp order message, dopamine animations (fly-to-cart, confetti, haptics), Tier 0 observability + Umami wiring.
 - [ ] **Custom domain** (e.g., rinkalskitchen.com) for marketing instead of the github.io URL.
 - [x] **Observability Tier 0 ADDED** — `OBS` config block + `track()` event layer in index.html. Funnel events: page_view, add_to_cart, remove_from_cart, order_submit (carries full cart payload), combo_order, tiffin_interest, join_community, js_error. GA4 + Sentry behind config placeholders; `debug:true` logs events to the browser console now.
-  - [ ] To activate: set `OBS.ga4Id` (GA4) and `OBS.sentryDsn` (Sentry).
+  - [ ] **Analytics provider chosen: Umami** (privacy-first, cookieless, free Hobby tier). Site is wired for it. To activate: sign up at cloud.umami.is → add website → paste the **Website ID** into `OBS.umamiId`. (GA4/Sentry also supported but Umami preferred for privacy.)
+  - [ ] WhatsApp order message was decluttered (no heavy dividers; emoji header; blank-line spacing). Note: one-line view = WhatsApp Web collapsing newlines; renders multi-line on Rinkal's phone.
   - [ ] **Tier 1** (serverless backend + orders DB + owner dashboard): set `OBS.endpoint` to your events API — `order_submit` already sends the structured cart, so it's a drop-in. Also add a CI/CD deploy for the backend.
 - [x] **CI/CD pipeline ADDED** — `.github/workflows/deploy.yml` (verify → deploy to Pages). Pages source set to GitHub Actions.
 
