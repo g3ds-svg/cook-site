@@ -34,7 +34,10 @@ A mobile-first ordering site for Rinkal, a home cook serving 100% vegetarian Guj
 - [ ] **Combo & tiffin prices** are my suggestions — confirm real numbers (rice & sweet-box prices unknown).
 - [ ] **Latest changes not yet pushed** (clean order message + dopamine animations).
 - [ ] **Custom domain** (e.g., rinkalskitchen.com) for marketing instead of the github.io URL.
-- [ ] **Observability** — Tier 0 (analytics + funnel events + Sentry) NOT yet added; Tier 1 (serverless backend + orders DB + owner dashboard) is the next architectural step. Fire typed cart events from day one so Tier 0→1 is a drop-in.
+- [x] **Observability Tier 0 ADDED** — `OBS` config block + `track()` event layer in index.html. Funnel events: page_view, add_to_cart, remove_from_cart, order_submit (carries full cart payload), combo_order, tiffin_interest, join_community, js_error. GA4 + Sentry behind config placeholders; `debug:true` logs events to the browser console now.
+  - [ ] To activate: set `OBS.ga4Id` (GA4) and `OBS.sentryDsn` (Sentry).
+  - [ ] **Tier 1** (serverless backend + orders DB + owner dashboard): set `OBS.endpoint` to your events API — `order_submit` already sends the structured cart, so it's a drop-in. Also add a CI/CD deploy for the backend.
+- [x] **CI/CD pipeline ADDED** — `.github/workflows/deploy.yml` (verify → deploy to Pages). Pages source set to GitHub Actions.
 
 ## Business direction
 See `STRATEGY.md` — staged path from one cook → productized template → neighborhood beachhead → multi-cook, multi-cuisine marketplace. Watch cottage-food-law constraints before centralizing payments.

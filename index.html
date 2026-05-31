@@ -53,6 +53,14 @@
     tiffinPlans: ["3 days/week","5 days/week"],
   };
 
+  // --- Tier 0 observability (fill these in to activate; structured events fire regardless) ---
+  const OBS = {
+    ga4Id:     "",     // Google Analytics 4 ID, e.g. "G-XXXXXXXXXX"
+    sentryDsn: "",     // Sentry DSN for error tracking
+    endpoint:  "",     // Tier 1 hook: your own events API (sendBeacon). Leave blank for now.
+    debug:     true,   // log events to the browser console
+  };
+
   const MENU = [
     { name:"Matar Paneer",    cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
     { name:"Malai Kofta",     cat:"sabji", veg:true, spice:0, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
@@ -435,6 +443,35 @@
 <script>
   const { brand, tagline, whatsapp, currency, area, groupLink, story, specials, reviews } = CONFIG;
   const brandShort = brand.split(/['’]s\b/)[0];
+
+  // ---------- Tier 0 observability ----------
+  (function initObs(){
+    if(OBS.ga4Id){
+      const g=document.createElement("script"); g.async=true; g.src="https://www.googletagmanager.com/gtag/js?id="+OBS.ga4Id; document.head.appendChild(g);
+      window.dataLayer=window.dataLayer||[]; window.gtag=function(){dataLayer.push(arguments);}; gtag("js",new Date()); gtag("config",OBS.ga4Id);
+    }
+    if(OBS.sentryDsn){
+      const s=document.createElement("script"); s.src="https://browser.sentry-cdn.com/7.120.0/bundle.min.js"; s.crossOrigin="anonymous";
+      s.onload=function(){ if(window.Sentry) Sentry.init({dsn:OBS.sentryDsn}); }; document.head.appendChild(s);
+    }
+  })();
+  function track(event,props){
+    props=props||{};
+    const payload=Object.assign({event:event,ts:Date.now(),path:location.pathname},props);
+    if(OBS.debug) console.log("[track]",event,props);
+    try{ if(OBS.ga4Id&&window.gtag) gtag("event",event,props); }catch(_){}
+    try{ if(OBS.endpoint) navigator.sendBeacon(OBS.endpoint,JSON.stringify(payload)); }catch(_){}
+  }
+  window.addEventListener("error",ev=>track("js_error",{message:ev.message,source:ev.filename,line:ev.lineno}));
+  window.addEventListener("unhandledrejection",ev=>track("js_error",{message:String((ev.reason&&ev.reason.message)||ev.reason)}));
+  document.addEventListener("click",ev=>{
+    const a=ev.target.closest&&ev.target.closest("[data-join],[data-combo],[data-tplan]");
+    if(!a) return;
+    if(a.hasAttribute("data-combo")) track("combo_order",{name:a.getAttribute("data-combo")});
+    else if(a.hasAttribute("data-tplan")) track("tiffin_interest",{pack:a.getAttribute("data-tpack"),plan:a.getAttribute("data-tplan")});
+    else track("join_community");
+  });
+  track("page_view");
   const money = n => currency + (Number.isInteger(n) ? n : n.toFixed(2));
   const slug = s => s.toLowerCase().replace(/\([^)]*\)/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 
@@ -566,6 +603,7 @@
     const q=Math.max(0,(cart[key]?.qty||0)+delta);
     if(q===0) delete cart[key]; else cart[key]={display:m.display,price:m.price,unit:m.unit,qty:q};
     if(delta>0){ toast(m.display+" added"); buzz(12); }
+    track(delta>0?"add_to_cart":"remove_from_cart",{item:m.display,price:m.price,qty:q});
     render(); updateBar();
   }
   function cartTotals(){
@@ -593,6 +631,8 @@
     if(total>0) msg += `*Subtotal: ${money(total)}*`+(hasAsk?" _(+ items priced on request)_":"")+"\n";
     msg += `Payment: cash on pickup\n\n`;
     msg += `Name: \nPickup time: `;
+    track("order_submit",{item_count:e.reduce((s,x)=>s+x.qty,0),subtotal:total,has_ask:hasAsk,items:e.map(x=>({name:x.display,qty:x.qty,price:x.price}))});
+    try{navigator.vibrate&&navigator.vibrate([12,40,16]);}catch(_){}
     window.open(waBase(msg),"_blank");
   };
   let toastT;
@@ -640,13 +680,13 @@
       const serves=c.serves?`<div class="cserves">${c.serves}</div>`:"";
       const link=waBase("*New order — "+brand+"*\n———————————————\n*"+c.name+"*"+(c.serves?" ("+c.serves+")":"")+"\n"+c.items.map(i=>"• "+i).join("\n")+"\n———————————————\n"+(c.price!=null?"*Price: "+money(c.price)+"*\n":"")+"Payment: cash on pickup\n\nName: \nPickup time: ");
       g.insertAdjacentHTML("beforeend",
-        `<div class="combo reveal${c.badge==='Most popular'?' feat':''}">${badge}<h3>${c.name}</h3>${serves}<ul>${items}</ul><div class="cf">${price}<a class="btn btn-dark" href="${link}" target="_blank">Order pack</a></div></div>`);
+        `<div class="combo reveal${c.badge==='Most popular'?' feat':''}">${badge}<h3>${c.name}</h3>${serves}<ul>${items}</ul><div class="cf">${price}<a class="btn btn-dark" href="${link}" target="_blank" data-combo="${c.name}">Order pack</a></div></div>`);
     });
   }
   function renderTiffin(){
     const g=document.getElementById("tiffin-grid"); const plans=CONFIG.tiffinPlans||["3 days/week","5 days/week"];
     (CONFIG.tiffin||[]).forEach(t=>{
-      const btns=plans.map(p=>{const link=waBase("Hi "+brand+", I'd like the "+t.name+" — "+p+" plan ("+t.desc+"). Please share the price and how to start. (Paying cash)");return `<a href="${link}" target="_blank">${p}</a>`;}).join("");
+      const btns=plans.map(p=>{const link=waBase("Hi "+brand+", I'd like the "+t.name+" — "+p+" plan ("+t.desc+"). Please share the price and how to start. (Paying cash)");return `<a href="${link}" target="_blank" data-tpack="${t.name}" data-tplan="${p}">${p}</a>`;}).join("");
       g.insertAdjacentHTML("beforeend",`<div class="tpack reveal"><h3>${t.name}</h3><div class="td">${t.desc}</div><div class="tp">${btns}</div></div>`);
     });
   }
