@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Rinkal's Kitchen — Home food at your fingertips</title>
+<meta name="description" content="Home-cooked Gujarati & Punjabi vegetarian food at your fingertips. Build your order, send it on WhatsApp, pay cash. Join our neighbourhood community.">
+
+<!-- ============================================================
+     EDIT ME — almost everything lives in this block.
+     sabjis use sizes:[{l,p}] · others use price + unit
+     price/p: number, or null = "Ask on WhatsApp"
+     ============================================================ -->
+<script>
+  const CONFIG = {
+    brand:    "Rinkal's Kitchen",
+    tagline:  "Home-cooked food at your fingertips — your neighbourhood kitchen.",
+    whatsapp: "10000000000",        // EDIT: Rinkal's number, digits only (US = 1 + 10 digits)
+    currency: "$",
+    area:     "Pickup only",
+    groupLink:"",
+
+    story:    "Authentic home-cooked Gujarati and Punjabi food — fresh sabjis, hot appetizers, crisp farsan and traditional sweets, all made by hand in small batches. Not a restaurant — a neighbour's kitchen, for our community.",
+
+    specials: [
+      { name:"Vada Pav",             note:"Mumbai-style, this weekend" },
+      { name:"Gulab Jamun",          note:"Fresh hot batch, Fridays" },
+      { name:"Paneer Tikka Special", note:"Chef's pick this week" },
+      { name:"Samosa",               note:"Always fresh, always crisp" },
+    ],
+
+    // EDIT: replace these EXAMPLE reviews with real customer messages.
+    reviews: [
+      { text:"Tastes just like home — my whole family is hooked.", who:"A happy neighbour" },
+      { text:"Freshest gathiya and sev around. So crisp every time.", who:"Weekend regular" },
+      { text:"The weekly tiffin has been a lifesaver. Warm, reliable, delicious.", who:"Happy regular" },
+    ],
+
+    popular: ["Paneer Pakora","Samosa","Paneer Tikka","Vada Pav","Dal Makhani","Gulab Jamun"],
+
+    // Family meal packs — prices are SUGGESTIONS (rice/sweet prices estimated); adjust to taste.
+    combos: [
+      { name:"Mini Family Thali", serves:"Serves 2–3", items:["Rice","1 Sabji (16oz)","Dal (16oz)","1 Appetizer","1 Sweet"], price:26 },
+      { name:"Family Feast",      serves:"Serves 4–5", badge:"Most popular", items:["Rice","2 Sabjis (16oz)","Dal Makhani (16oz)","Mixed Pakora (1 lb)","Farsan (½ lb)","Sweet box"], price:58 },
+      { name:"Grand Celebration", serves:"Serves 6–8", badge:"Best value",  items:["Rice","3 Sabjis (16oz)","Dal Makhani (16oz)","2 Appetizers","Farsan (1 lb)","Assorted sweets"], price:89 },
+      { name:"Snack Box",         serves:"Great for sharing", items:["Samosa ×4","Kachori ×2","Mixed Pakora (½ lb)","Chutneys"], price:16 },
+    ],
+
+    tiffin: [
+      { name:"Mini Tiffin",   desc:"1 sabji + dal + rice or rotis",            price:null },
+      { name:"Family Tiffin", desc:"2 sabjis + dal + rice + rotis + a sweet",  price:null },
+    ],
+    tiffinPlans: ["3 days/week","5 days/week"],
+  };
+
+  const MENU = [
+    { name:"Matar Paneer",    cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Malai Kofta",     cat:"sabji", veg:true, spice:0, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Paneer Makhani",  cat:"sabji", veg:true, spice:0, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Paneer Bhurjee",  cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Chilli Paneer",   cat:"sabji", veg:true, spice:2, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Baingan Bhartha", cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Aloo Gobi",       cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Aloo Baingan",    cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Bhindi Masala",   cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Stuffed Bhindi",  cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Navrattan Curry", cat:"sabji", veg:true, spice:0, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Channa Masala",   cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Dal Makhani",     cat:"sabji", veg:true, spice:0, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Tarka Dal",       cat:"sabji", veg:true, spice:1, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+    { name:"Punjabi Kadhi",   cat:"sabji", veg:true, spice:0, sizes:[{l:"8oz",p:10},{l:"16oz",p:13}] },
+
+    { name:"Mixed Pakora",         cat:"appetizer", price:8,    unit:"/lb", veg:true, spice:1 },
+    { name:"Paneer Pakora",        cat:"appetizer", price:9,    unit:"/lb", veg:true, spice:1 },
+    { name:"Paneer Tikka",         cat:"appetizer", price:8,    unit:"",    veg:true, spice:1 },
+    { name:"Samosa",               cat:"appetizer", price:1.25, unit:"ea",  veg:true, spice:1 },
+    { name:"Dabeli",               cat:"appetizer", price:3,    unit:"ea",  veg:true, spice:1 },
+    { name:"Vada Pav",             cat:"appetizer", price:3,    unit:"ea",  veg:true, spice:2 },
+    { name:"Masala Puri",          cat:"appetizer", price:2,    unit:" /4pc", veg:true, spice:1 },
+    { name:"Aloo Tikki",           cat:"appetizer", price:2,    unit:"ea",  veg:true, spice:1 },
+    { name:"Paneer Tikka Special", cat:"appetizer", price:10,   unit:"",    veg:true, spice:1 },
+    { name:"Veg Cutlet",           cat:"appetizer", price:2,    unit:"ea",  veg:true, spice:1 },
+    { name:"Bhel",                 cat:"appetizer", price:4,    unit:"",    veg:true, spice:1 },
+    { name:"Veg Roll",             cat:"appetizer", price:4,    unit:"",    veg:true, spice:1 },
+
+    { name:"Gathiya",        cat:"farsan", price:16, unit:"/lb", veg:true, spice:0 },
+    { name:"Sev",            cat:"farsan", price:16, unit:"/lb", veg:true, spice:1 },
+    { name:"Ratlami Sev",    cat:"farsan", price:16, unit:"/lb", veg:true, spice:2 },
+    { name:"Fulwadi",        cat:"farsan", price:16, unit:"/lb", veg:true, spice:1 },
+    { name:"Methi Gathiya",  cat:"farsan", price:16, unit:"/lb", veg:true, spice:1 },
+    { name:"Papdi (Besan)",  cat:"farsan", price:16, unit:"/lb", veg:true, spice:0 },
+    { name:"Bhatha Kani",    cat:"farsan", price:16, unit:"/lb", veg:true, spice:1 },
+    { name:"Kachori",        cat:"farsan", price:1,  unit:"ea",  veg:true, spice:1 },
+    { name:"Khasta Kachori", cat:"farsan", price:2,  unit:"ea",  veg:true, spice:1 },
+    { name:"Methi Thepla",   cat:"farsan", price:1,  unit:"ea",  veg:true, spice:1 },
+
+    { name:"Gulab Jamun",   cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+    { name:"Kheer",         cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+    { name:"Malai Kulfi",   cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+    { name:"Boondi Ladu",   cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+    { name:"Mango Delight", cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+    { name:"Gajar Halwa",   cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+    { name:"Sooji Halwa",   cat:"dessert", price:null, unit:"", veg:true, spice:0 },
+  ];
+</script>
+
+<style>
+  :root{
+    --bg:#FFFFFF; --soft:#F7F6F4; --ink:#141414; --muted:#6E6B66; --line:#ECEAE5;
+    --accent:#C0492F; --accent-2:#A33A24; --accent-soft:#FBECE7;
+    --veg:#2E7D52; --wa:#25D366; --wa-d:#1EBE5C;
+    --shadow-sm:0 1px 2px rgba(20,20,20,.05),0 4px 14px rgba(20,20,20,.04);
+    --shadow:0 10px 34px rgba(20,20,20,.10);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;padding-bottom:84px;font-size:15px}
+  h1,h2,h3{font-family:'Inter',sans-serif;font-weight:800;letter-spacing:-.025em;line-height:1.1}
+  a{text-decoration:none;color:inherit}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  .eyebrow{color:var(--accent);font-weight:700;font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;margin-bottom:10px}
+
+  nav{position:sticky;top:0;z-index:40;backdrop-filter:saturate(150%) blur(12px);
+    background:rgba(255,255,255,.8);border-bottom:1px solid var(--line)}
+  nav .row{display:flex;align-items:center;justify-content:space-between;height:60px}
+  nav .logo{display:flex;align-items:center;gap:9px;font-weight:800;font-size:1.05rem;letter-spacing:-.02em}
+  nav .logo .mark{width:28px;height:28px;border-radius:7px;background:var(--ink);color:#fff;display:grid;place-items:center;font-size:.85rem;font-weight:800}
+  nav .links{display:flex;gap:26px;font-size:.9rem;font-weight:500;color:var(--muted)}
+  nav .links a:hover{color:var(--ink)}
+  nav .wa-mini{background:var(--ink);color:#fff;padding:8px 16px;border-radius:8px;font-size:.85rem;font-weight:600}
+  @media(max-width:720px){nav .links{display:none}}
+
+  .hero{text-align:center;padding:78px 22px 70px;background:
+    radial-gradient(120% 80% at 50% -10%,var(--soft) 0%,transparent 60%),var(--bg)}
+  .hero .pill{display:inline-block;background:var(--accent-soft);color:var(--accent-2);
+    padding:6px 14px;border-radius:50px;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:22px}
+  .hero h1{font-size:clamp(2.5rem,7vw,4.4rem);color:var(--ink);margin-bottom:16px}
+  .hero p.tag{font-size:clamp(1.05rem,2.4vw,1.3rem);color:var(--muted);max-width:520px;margin:0 auto 30px}
+  .hero .cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:10px;font-weight:600;
+    font-size:.98rem;border:none;cursor:pointer;transition:transform .12s,box-shadow .12s,background .2s,border-color .2s;font-family:inherit}
+  .btn:active{transform:scale(.98)}
+  .btn-wa{background:var(--wa);color:#fff;box-shadow:0 6px 18px rgba(37,211,102,.35)}
+  .btn-wa:hover{background:var(--wa-d)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-dark:hover{background:#000}
+  .btn-out{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+  .btn-out:hover{border-color:var(--ink)}
+  .hero .meta{margin-top:26px;font-size:.86rem;color:var(--muted)}
+
+  section{padding:56px 0}
+  .h2{text-align:center;font-size:clamp(1.7rem,3.6vw,2.3rem);color:var(--ink);margin-bottom:10px}
+  .lead{text-align:center;color:var(--muted);max-width:600px;margin:0 auto 32px;font-size:1.02rem}
+  .center{text-align:center}
+  .legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:30px;font-size:.84rem;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .vegdot{width:15px;height:15px;border:2px solid var(--veg);border-radius:3px;display:inline-grid;place-items:center}
+  .vegdot::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--veg)}
+
+  .specials{background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .sp-scroll{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .sp-scroll::-webkit-scrollbar{height:6px}.sp-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:50px}
+  .special{min-width:208px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+  .special .art{height:124px;position:relative;background:var(--soft);overflow:hidden}
+  .special .art svg{position:absolute;inset:0;width:100%;height:100%}
+  .special .art .tagw{position:absolute;top:9px;left:9px;background:#fff;color:var(--accent-2);font-size:.64rem;font-weight:800;padding:3px 9px;border-radius:50px;letter-spacing:.08em;box-shadow:var(--shadow-sm)}
+  .special .sb{padding:12px 14px}
+  .special .sb b{display:block;font-size:1rem;font-weight:700}
+  .special .sb span{font-size:.83rem;color:var(--muted)}
+
+  .story .card{max-width:660px;margin:0 auto;text-align:center}
+  .story p{font-size:1.2rem;color:var(--ink);line-height:1.55;font-weight:500}
+
+  .menu-wrap{background:var(--bg);border-top:1px solid var(--line)}
+  .cat-block{margin-bottom:44px}
+  .cat-head{display:flex;align-items:baseline;gap:12px;margin:0 0 18px}
+  .cat-head h3{font-size:1.4rem;color:var(--ink)}
+  .cat-head .rule{flex:1;height:1px;background:var(--line);align-self:center}
+  .cat-head .note{font-size:.8rem;color:var(--muted);font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+
+  .card-dish{background:var(--card,#fff);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;
+    display:flex;flex-direction:row;align-items:stretch;box-shadow:var(--shadow-sm);transition:box-shadow .15s,transform .15s}
+  .card-dish:active{transform:scale(.995)}
+  @media(hover:hover){.card-dish:hover{box-shadow:var(--shadow)}}
+  .photo{width:112px;min-width:112px;position:relative;overflow:hidden;background:var(--soft)}
+  .photo svg{position:absolute;inset:0;width:100%;height:100%}
+  .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .photo .veg{position:absolute;top:8px;left:8px;background:#fff;border-radius:4px;padding:2px;line-height:0;box-shadow:var(--shadow-sm)}
+  .photo .spice{position:absolute;bottom:8px;left:8px;background:rgba(255,255,255,.94);border-radius:50px;
+    padding:2px 7px;font-size:.66rem;font-weight:700;color:var(--accent);box-shadow:var(--shadow-sm)}
+  .body{padding:13px 15px;display:flex;flex-direction:column;flex:1;min-width:0}
+  .body h3{font-size:1.04rem;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+  .sizes{display:flex;gap:6px;margin-bottom:10px}
+  .sizes button{border:1.5px solid var(--line);background:#fff;color:var(--muted);border-radius:8px;
+    padding:4px 12px;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+  .sizes button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:auto}
+  .price{font-weight:800;font-size:1.08rem;color:var(--ink);white-space:nowrap}
+  .price .unit{font-size:.72rem;color:var(--muted);font-weight:600;margin-left:2px}
+  .price.ask{font-size:.82rem;color:var(--accent);font-weight:700}
+  .add{display:inline-flex;align-items:center;gap:5px;background:var(--accent-soft);color:var(--accent-2);border:none;
+    padding:10px 18px;border-radius:8px;font-weight:700;font-size:.88rem;cursor:pointer;font-family:inherit;transition:background .15s}
+  .add:hover{background:#F6DED6}
+  .stepper{display:inline-flex;align-items:center;background:var(--ink);border-radius:8px;overflow:hidden}
+  .stepper button{background:none;border:none;color:#fff;width:38px;height:38px;font-size:1.25rem;cursor:pointer;font-family:inherit}
+  .stepper span{color:#fff;min-width:22px;text-align:center;font-weight:700;font-size:.92rem}
+
+  .tiffin{background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .tiffin .inner{max-width:680px;margin:0 auto;text-align:center}
+  .tiffin h2{font-size:clamp(1.6rem,3.6vw,2.1rem);color:var(--ink);margin-bottom:10px}
+  .tiffin p{color:var(--muted);max-width:500px;margin:0 auto 22px}
+
+  .reviews-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:16px}
+  .review{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow-sm)}
+  .review .stars{color:var(--accent);margin-bottom:10px;font-size:.9rem;letter-spacing:2px}
+  .review p{font-size:1.04rem;margin-bottom:12px;color:var(--ink);font-weight:500;line-height:1.5}
+  .review .who{font-size:.82rem;color:var(--muted);font-weight:600}
+
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:22px;max-width:900px;margin:0 auto}
+  .step{text-align:center}
+  .step .n{width:42px;height:42px;border-radius:10px;margin:0 auto 14px;background:var(--ink);
+    color:#fff;display:grid;place-items:center;font-weight:800;font-size:1.05rem}
+  .step h3{font-size:1.06rem;font-weight:700;margin-bottom:5px;color:var(--ink)}
+  .step p{color:var(--muted);font-size:.92rem}
+
+  .community{background:var(--ink);color:#fff;text-align:center}
+  .community .eyebrow{color:#E9A18F}
+  .community .h2{color:#fff}.community .lead{color:rgba(255,255,255,.7)}
+
+  footer{text-align:center;padding:42px 22px 30px;color:var(--muted);font-size:.88rem;border-top:1px solid var(--line)}
+  footer .brand{font-weight:800;font-size:1.1rem;color:var(--ink);margin-bottom:4px;letter-spacing:-.02em}
+  footer .cash{display:inline-block;background:var(--accent-soft);color:var(--accent-2);padding:7px 16px;border-radius:50px;font-weight:700;margin-bottom:16px;font-size:.84rem}
+
+  /* popular row */
+  .poprow{margin-bottom:24px}
+  .poptitle{font-weight:800;font-size:1.05rem;letter-spacing:-.01em;margin-bottom:12px}
+  .pop-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+  .pop-scroll::-webkit-scrollbar{height:6px}.pop-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:50px}
+  .pop-card{min-width:148px;scroll-snap-align:start;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column}
+  .pop-card .ph{height:94px;position:relative;background:var(--soft)}
+  .pop-card .ph img,.pop-card .ph svg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .pop-card .pb{padding:10px 11px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .pop-card .pn{font-weight:700;font-size:.88rem;line-height:1.2}
+  .pop-card .pr{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+  .pop-card .pp{font-weight:800;font-size:.92rem}
+  .pop-card .add{padding:6px 11px;font-size:.82rem;border-radius:7px}
+
+  /* sticky category tabs */
+  .cattabs{position:sticky;top:59px;z-index:30;display:flex;gap:8px;overflow-x:auto;padding:11px 0;margin-bottom:6px;
+    background:rgba(255,255,255,.93);backdrop-filter:blur(8px);scrollbar-width:none}
+  .cattabs::-webkit-scrollbar{display:none}
+  .cattabs a{white-space:nowrap;padding:7px 15px;border-radius:50px;border:1.5px solid var(--line);
+    font-size:.84rem;font-weight:700;color:var(--muted);transition:all .15s}
+  .cattabs a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .cat-block{scroll-margin-top:120px}
+
+  /* combos */
+  .combos{background:var(--bg);border-top:1px solid var(--line)}
+  .combo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:16px}
+  .combo{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column}
+  .combo.feat{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow)}
+  .cbadge{position:absolute;top:-10px;left:18px;background:var(--accent);color:#fff;font-size:.64rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 11px;border-radius:50px}
+  .cserves{font-size:.82rem;color:var(--muted);font-weight:700;margin:-6px 0 12px}
+  .combo h3{font-size:1.14rem;font-weight:800;margin-bottom:8px}
+  .combo ul{list-style:none;margin:0 0 16px;padding:0;flex:1}
+  .combo li{font-size:.9rem;color:var(--muted);padding:4px 0 4px 18px;position:relative}
+  .combo li::before{content:"";position:absolute;left:0;top:12px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .combo .cf{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .combo .cp{font-weight:800}
+  .combo .btn{padding:10px 16px;font-size:.85rem}
+
+  /* tiffin packages */
+  .tiffin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:16px;margin-top:6px;text-align:left}
+  .tpack{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:var(--shadow-sm)}
+  .tpack h3{font-size:1.14rem;font-weight:800;margin-bottom:6px}
+  .tpack .td{color:var(--muted);font-size:.9rem;margin-bottom:14px}
+  .tpack .tp{display:flex;gap:8px;flex-wrap:wrap}
+  .tpack .tp a{flex:1;min-width:92px;text-align:center;border:1.5px solid var(--line);background:#fff;color:var(--ink);
+    border-radius:8px;padding:9px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s}
+  .tpack .tp a:hover{border-color:var(--ink);background:var(--ink);color:#fff}
+
+  /* ---- Gujarati decor (subtle) ---- */
+  .toran{height:22px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='38' height='22'%3E%3Crect width='38' height='2.4' fill='%23C0492F'/%3E%3Cpath d='M0 2 H38 L19 17 Z' fill='%23C0492F'/%3E%3Ccircle cx='19' cy='20' r='1.9' fill='%23C0492F'/%3E%3C/svg%3E") repeat-x center;background-size:auto 22px;opacity:.9}
+  .toran.flip{transform:rotate(180deg)}
+  .specials::before,.community::before{content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:radial-gradient(currentColor 1.7px,transparent 1.9px),radial-gradient(currentColor 1.7px,transparent 1.9px);
+    background-size:26px 26px;background-position:0 0,13px 13px}
+  .specials::before{color:rgba(192,73,47,.16)}
+  .community::before{color:rgba(255,255,255,.13)}
+  .specials>.wrap,.community>.wrap{position:relative;z-index:1}
+  .medallion{width:56px;height:56px;margin:0 auto 16px;display:block}
+  /* bandhani band divider */
+  .bandhani{height:30px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='2.4' fill='%23C0492F'/%3E%3Ccircle cx='14' cy='3' r='1.4' fill='%23C0492F'/%3E%3Ccircle cx='14' cy='25' r='1.4' fill='%23C0492F'/%3E%3Ccircle cx='3' cy='14' r='1.4' fill='%23C0492F'/%3E%3Ccircle cx='25' cy='14' r='1.4' fill='%23C0492F'/%3E%3C/svg%3E") repeat-x center;background-size:auto 28px;opacity:.55}
+  .orderbar{position:fixed;left:0;right:0;bottom:0;z-index:50;transform:translateY(120%);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .orderbar.show{transform:none}
+  .orderbar .inner{max-width:1060px;margin:0 auto;padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+    background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 26px rgba(20,20,20,.10);
+    display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .orderbar .summary{font-size:.86rem;color:var(--muted)}
+  .orderbar .summary b{display:block;color:var(--ink);font-size:1.1rem;font-weight:800}
+  .orderbar .btn-wa{padding:12px 20px;font-size:.95rem}
+  /* conversion micro-interactions */
+  @keyframes pulseWa{0%,100%{box-shadow:0 6px 18px rgba(37,211,102,.4)}50%{box-shadow:0 8px 30px rgba(37,211,102,.78)}}
+  .orderbar.show #ob-send{animation:pulseWa 1.9s ease-in-out infinite}
+  @keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.25)}100%{transform:scale(1)}}
+  .bump{animation:bump .35s ease;display:inline-block}
+  .add:active{transform:scale(.92)}
+  .poprow{position:relative}
+  .poprow::after{content:"";position:absolute;right:0;top:32px;bottom:8px;width:40px;pointer-events:none;
+    background:linear-gradient(90deg,transparent,var(--bg))}
+  @media(prefers-reduced-motion:reduce){.orderbar.show #ob-send{animation:none}.bump{animation:none}}
+  .toast{position:fixed;bottom:92px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:50px;font-size:.86rem;font-weight:600;
+    transition:opacity .25s,transform .25s;z-index:60;pointer-events:none}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+  <nav><div class="wrap row">
+    <div class="logo"><span class="mark">R</span><span data-brand></span></div>
+    <div class="links"><a href="#specials">This week</a><a href="#menu">Menu</a><a href="#tiffin">Weekly tiffin</a><a href="#community">Community</a></div>
+    <a class="wa-mini" data-join>Join</a>
+  </div></nav>
+
+  <header class="hero">
+    <span class="pill">100% Vegetarian · Made fresh</span>
+    <h1 data-brand></h1>
+    <p class="tag" data-tagline></p>
+    <div class="cta">
+      <a class="btn btn-wa" href="#menu">Start your order</a>
+      <a class="btn btn-out" data-join>Join the community</a>
+    </div>
+    <div class="meta">Cash on pickup &nbsp;·&nbsp; <span data-area></span></div>
+  </header>
+
+  <div class="toran" aria-hidden="true"></div>
+
+  <section class="specials" id="specials"><div class="wrap">
+    <div class="eyebrow center reveal">Fresh this week</div>
+    <h2 class="h2 reveal">What's cooking</h2>
+    <p class="lead reveal">A rotating taste of what's on the stove. Add anything from the menu below to your order.</p>
+    <div class="sp-scroll reveal" id="specials-strip"></div>
+  </div></section>
+
+  <section class="story" id="story"><div class="wrap card reveal">
+    <svg class="medallion" viewBox="0 0 48 48" fill="none" stroke="#C0492F" stroke-width="1.5" aria-hidden="true">
+      <circle cx="24" cy="24" r="4"/><circle cx="24" cy="24" r="11"/>
+      <circle cx="24" cy="24" r="18" stroke-dasharray="2 4"/>
+      <path d="M24 6v6M24 36v6M6 24h6M36 24h6M12 12l4 4M32 32l4 4M36 12l-4 4M12 36l4-4"/>
+    </svg>
+    <div class="eyebrow center">Our Story</div><p data-story></p>
+  </div></section>
+
+  <section class="menu-wrap" id="menu"><div class="wrap">
+    <div class="eyebrow center reveal">The Menu</div>
+    <h2 class="h2 reveal">Build your order</h2>
+    <p class="lead reveal">Tap to add what you want. Send it on WhatsApp when you're done — pay cash on pickup.</p>
+    <div class="legend reveal"><span><span class="vegdot"></span> Vegetarian</span><span>🌶 Mild</span><span>🌶🌶 Spicy</span></div>
+    <div class="poprow reveal"><div class="poptitle">Popular this week</div><div class="pop-scroll" id="popular-strip"></div></div>
+    <div class="cattabs" id="cattabs"></div>
+    <div id="menu-cats"></div>
+  </div></section>
+
+  <section class="combos" id="combos"><div class="wrap">
+    <div class="eyebrow center reveal">Feed the whole family</div>
+    <h2 class="h2 reveal">Family meal packs</h2>
+    <p class="lead reveal">Complete meals — rice, sabji, curry, appetizers &amp; sweets. One tap to order.</p>
+    <div class="combo-grid" id="combo-grid"></div>
+  </div></section>
+
+  <div class="bandhani" aria-hidden="true"></div>
+
+  <section class="tiffin" id="tiffin"><div class="wrap inner reveal">
+    <svg class="medallion" viewBox="0 0 48 48" fill="none" stroke="#C0492F" stroke-width="1.5" aria-hidden="true">
+      <circle cx="24" cy="24" r="4"/><circle cx="24" cy="24" r="11"/>
+      <circle cx="24" cy="24" r="18" stroke-dasharray="2 4"/>
+      <path d="M24 6v6M24 36v6M6 24h6M36 24h6M12 12l4 4M32 32l4 4M36 12l-4 4M12 36l4-4"/>
+    </svg>
+    <div class="eyebrow">Never cook on a weeknight again</div>
+    <h2>Join the weekly tiffin</h2>
+    <p>Pick a plan and we'll set you up on WhatsApp — pay cash weekly, pause anytime.</p>
+    <div class="tiffin-grid" id="tiffin-grid"></div>
+  </div></section>
+
+  <section id="reviews"><div class="wrap">
+    <div class="eyebrow center reveal">From the neighbourhood</div>
+    <h2 class="h2 reveal">What people are saying</h2>
+    <p class="lead reveal">Real words from our community.</p>
+    <div class="reviews-grid" id="reviews-grid"></div>
+  </div></section>
+
+  <section id="how" style="background:var(--soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line)"><div class="wrap">
+    <div class="eyebrow center reveal">Simple &amp; personal</div>
+    <h2 class="h2 reveal">How it works</h2>
+    <p class="lead reveal">No apps, no accounts, no card needed.</p>
+    <div class="steps">
+      <div class="step reveal"><div class="n">1</div><h3>Build your order</h3><p>Add the dishes you want right here.</p></div>
+      <div class="step reveal"><div class="n">2</div><h3>Send on WhatsApp</h3><p>One tap sends it to <span data-brand-short></span>.</p></div>
+      <div class="step reveal"><div class="n">3</div><h3>She confirms &amp; cooks</h3><p>Agree a time — everything's made fresh.</p></div>
+      <div class="step reveal"><div class="n">4</div><h3>Pay cash</h3><p>On pickup. That's it.</p></div>
+    </div>
+  </div></section>
+
+  <section class="community" id="community"><div class="wrap">
+    <div class="eyebrow center reveal">Our community</div>
+    <h2 class="h2 reveal">Join us on WhatsApp</h2>
+    <p class="lead reveal">Weekly menus, daily specials, and festival treats — straight to your phone. It's where the neighbourhood eats.</p>
+    <div class="center reveal"><a class="btn btn-wa" data-join>Join the community</a></div>
+  </div></section>
+
+  <div class="toran flip" aria-hidden="true"></div>
+
+  <footer>
+    <div class="cash">Cash on pickup</div>
+    <div class="brand" data-brand></div>
+    <div>100% vegetarian · made fresh to order · <span data-area></span></div>
+  </footer>
+
+  <div class="orderbar" id="orderbar"><div class="inner">
+    <div class="summary"><span id="ob-count">0 items</span><b id="ob-total"></b></div>
+    <button class="btn btn-wa" id="ob-send">Send order on WhatsApp →</button>
+  </div></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+  const { brand, tagline, whatsapp, currency, area, groupLink, story, specials, reviews } = CONFIG;
+  const brandShort = brand.split(/['’]s\b/)[0];
+  const money = n => currency + (Number.isInteger(n) ? n : n.toFixed(2));
+  const slug = s => s.toLowerCase().replace(/\([^)]*\)/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+
+  document.querySelectorAll("[data-brand]").forEach(e=>e.textContent=brand);
+  document.querySelectorAll("[data-brand-short]").forEach(e=>e.textContent=brandShort);
+  document.querySelector("[data-tagline]").textContent = tagline;
+  document.querySelector("[data-story]").textContent = story;
+  document.querySelectorAll("[data-area]").forEach(e=>e.textContent=area);
+  document.title = brand + " — Home food at your fingertips";
+
+  const waBase = txt => "https://wa.me/" + whatsapp + "?text=" + encodeURIComponent(txt);
+  const joinHref = groupLink || waBase("Hi " + brand + ", I'd like to join your WhatsApp community for menu updates!");
+  document.querySelectorAll("[data-join]").forEach(a=>a.href=joinHref);
+  // weekly tiffin rendered as plan cards below
+
+  /* per-dish illustration fallback (used only if a photo fails to load) */
+  const FOOD=["#E0822A","#C84B1E","#D9A441","#B5471F","#8E5A2B","#E0A33A","#A8431C","#C56A1E","#6B8E3D","#7A4423","#D98324","#9C3B1B","#C9962E","#A85420","#BE6B1A","#8C6E2B"];
+  const GARN=["#2E7D32","#C0392B","#FBE3B8","#6B3A1E","#E74C3C","#F4D58A","#3E8E41","#7D3C98","#2E7D32","#D35400"];
+  function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+  function rng(seed){let s=(seed>>>0)||1;return()=>{s=(Math.imul(s,1664525)+1013904223)>>>0;return s/4294967296;};}
+  const wrapSvg=i=>`<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">${i}</svg>`;
+  const bowl=f=>`<ellipse cx="100" cy="99" rx="64" ry="42" fill="#5E2029"/><ellipse cx="100" cy="88" rx="58" ry="34" fill="${f}"/><ellipse cx="100" cy="84" rx="52" ry="27" fill="#ffffff" fill-opacity=".13"/>`;
+  function blobs(seed,n,cx,cy,sx,sy,rmin,rmax){const r=rng(seed);let s="";for(let i=0;i<n;i++){const x=cx+(r()-.5)*sx,y=cy+(r()-.5)*sy,rr=rmin+r()*(rmax-rmin),c=GARN[(seed+i*7)%GARN.length];s+=`<circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rr.toFixed(0)}" fill="${c}"/>`;}return s;}
+  function makeArt(d){
+    const seed=hash(d.name), food=FOOD[seed%FOOD.length];
+    if(d.cat==="sabji")   return wrapSvg(bowl(food)+blobs(seed,4,100,84,72,22,5,9));
+    if(d.cat==="farsan"){const sev=`<g fill="none" stroke="${food}" stroke-width="3.4" stroke-linecap="round">`+[74,84,94].map(y=>`<path d="M62 ${y} q12 -9 25 0 t25 0 t26 0"/>`).join("")+`</g>`;return wrapSvg(bowl("#F2D9A0")+sev);}
+    if(d.cat==="dessert")return wrapSvg(bowl("#7A2E2E")+`<circle cx="84" cy="89" r="15" fill="${food}"/><circle cx="115" cy="93" r="15" fill="${food}"/><circle cx="100" cy="78" r="14" fill="${food}"/>`);
+    const plate=`<ellipse cx="100" cy="118" rx="74" ry="15" fill="#fff" fill-opacity=".28"/>`;
+    return wrapSvg(plate+`<circle cx="78" cy="94" r="21" fill="${food}"/><circle cx="120" cy="94" r="21" fill="${food}"/><circle cx="99" cy="73" r="21" fill="${food}"/>`);
+  }
+
+  /* curated Pexels photos (free for commercial use, no attribution) */
+  const PX={
+    sabji:[12737917,19781599,674574,8312083,18548422,10445627],
+    appetizer:[23286188,14477873,1059943,5410400,13063312],
+    farsan:[32451656,18853366,14477873,1059943,23286188],
+    dessert:[11887844,18488298,15014918,7406888,7449105],
+  };
+  const PX_FIX={
+    "Samosa":23286188,
+    "Dal Makhani":12737916,"Tarka Dal":12737916,"Punjabi Kadhi":12737916,
+    "Vada Pav":5410400,"Dabeli":5410400,
+    "Mixed Pakora":1059943,"Paneer Pakora":1059943,
+    "Bhel":13063312,"Masala Puri":13063312,
+    "Gathiya":32451656,"Sev":18853366,"Ratlami Sev":32451656,"Fulwadi":18853366,"Methi Gathiya":32451656,"Papdi (Besan)":18853366,
+    "Gulab Jamun":11887844,"Kheer":15014918,"Boondi Ladu":18488298,"Malai Kulfi":7449105,"Gajar Halwa":7406888,"Sooji Halwa":7406888,"Mango Delight":18488298
+  };
+  function stockUrl(d){
+    const list=PX[d.cat]||PX.sabji, id=PX_FIX[d.name]||list[hash(d.name)%list.length];
+    return `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=400`;
+  }
+
+  const SECTIONS=[
+    {cat:"appetizer",title:"Appetizers",note:""},
+    {cat:"sabji",title:"Vegetarian Sabjis",note:"8oz $10 · 16oz $13"},
+    {cat:"farsan",title:"Farsan & Snacks",note:""},
+    {cat:"dessert",title:"Desserts",note:"Price on request"},
+  ];
+  const cart={}, sizeSel={};
+  const host=document.getElementById("menu-cats");
+
+  function metaFor(d){
+    if(d.sizes){const i=sizeSel[d.name]??(d.sizes.length-1);const s=d.sizes[i];return{display:`${d.name} (${s.l})`,price:s.p,unit:""};}
+    return{display:d.name,price:d.price,unit:d.unit||""};
+  }
+  function priceHtml(m){
+    if(m.price==null) return `<span class="price ask">Ask on WhatsApp</span>`;
+    return `<span class="price">${money(m.price)}${m.unit?`<span class="unit">${m.unit}</span>`:""}</span>`;
+  }
+  function spiceHtml(d){return d.spice>0?`<span class="spice">${"🌶".repeat(d.spice)}</span>`:"";}
+  function photoHtml(d){
+    const local="photos/"+slug(d.name)+".jpg", stock=stockUrl(d);
+    const onerr="if(this.src.indexOf('photos/')>-1){this.src=this.dataset.stock}else{this.remove()}";
+    return `<div class="photo">${makeArt(d)}<img src="${local}" alt="${d.name}" loading="lazy" data-stock="${stock}" onerror="${onerr}"><span class="veg"><span class="vegdot"></span></span>${spiceHtml(d)}</div>`;
+  }
+
+  function render(){
+    host.innerHTML="";
+    SECTIONS.forEach(sec=>{
+      const dishes=MENU.filter(d=>d.cat===sec.cat); if(!dishes.length) return;
+      const block=document.createElement("div"); block.className="cat-block reveal"; block.id="cat-"+sec.cat;
+      block.innerHTML=`<div class="cat-head"><h3>${sec.title}</h3><span class="rule"></span>${sec.note?`<span class="note">${sec.note}</span>`:""}</div><div class="grid"></div>`;
+      const grid=block.querySelector(".grid");
+      dishes.forEach(d=>{
+        const m=metaFor(d), key=m.display, qty=cart[key]?.qty||0;
+        let sizesHtml="";
+        if(d.sizes){const sel=sizeSel[d.name]??(d.sizes.length-1);
+          sizesHtml=`<div class="sizes">`+d.sizes.map((s,i)=>`<button class="${i===sel?'on':''}" data-size="${d.name}|${i}">${s.l}</button>`).join("")+`</div>`;}
+        const control = qty>0
+          ? `<div class="stepper"><button data-dec="${d.name}">–</button><span>${qty}</span><button data-inc="${d.name}">+</button></div>`
+          : `<button class="add" data-inc="${d.name}">＋ Add</button>`;
+        grid.insertAdjacentHTML("beforeend",
+          `<div class="card-dish">${photoHtml(d)}<div class="body"><h3>${d.name}</h3>${sizesHtml}<div class="row">${priceHtml(m)}${control}</div></div></div>`);
+      });
+      host.appendChild(block);
+    });
+    host.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{const[n,i]=b.dataset.size.split("|");sizeSel[n]=+i;render();});
+    host.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>change(b.dataset.inc,1));
+    host.querySelectorAll("[data-dec]").forEach(b=>b.onclick=()=>change(b.dataset.dec,-1));
+    io.disconnect(); document.querySelectorAll(".reveal").forEach(el=>io.observe(el)); attachSpy();
+  }
+  function change(name,delta){
+    const d=MENU.find(m=>m.name===name), m=metaFor(d), key=m.display;
+    const q=Math.max(0,(cart[key]?.qty||0)+delta);
+    if(q===0) delete cart[key]; else cart[key]={display:m.display,price:m.price,unit:m.unit,qty:q};
+    if(delta>0) toast(m.display+" added");
+    render(); updateBar();
+  }
+  function cartTotals(){
+    const e=Object.values(cart); const count=e.reduce((s,x)=>s+x.qty,0);
+    let total=0,hasAsk=false; e.forEach(x=>{if(x.price==null)hasAsk=true;else total+=x.qty*x.price;});
+    return {e,count,total,hasAsk};
+  }
+  let prevCount=0;
+  function updateBar(){
+    const {count,total,hasAsk}=cartTotals();
+    const cE=document.getElementById("ob-count"), tE=document.getElementById("ob-total");
+    cE.textContent=count+(count===1?" item":" items");
+    tE.textContent = total>0 ? money(total)+(hasAsk?" + ask":"") : (hasAsk?"price on WhatsApp":"");
+    document.getElementById("orderbar").classList.toggle("show",count>0);
+    if(count>prevCount){[cE,tE].forEach(e=>{e.classList.remove("bump");void e.offsetWidth;e.classList.add("bump");});}
+    prevCount=count;
+  }
+  document.getElementById("ob-send").onclick=()=>{
+    const {e,total,hasAsk}=cartTotals(); if(!e.length) return;
+    let msg="Hi "+brand+", I'd like to order:\n";
+    e.forEach(x=>{ msg += "• " + (x.price==null ? `${x.qty} × ${x.display}` : `${x.qty} × ${x.display} — ${money(x.qty*x.price)}${x.unit?" ("+x.unit.replace('/','per ')+")":""}`) + "\n"; });
+    if(total>0) msg += `\nSubtotal: ${money(total)}`+(hasAsk?" (+ items priced on request)":"");
+    msg += `\n(Paying cash on pickup)`;
+    window.open(waBase(msg),"_blank");
+  };
+  let toastT;
+  function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),1300);}
+
+  function renderSpecials(){
+    const strip=document.getElementById("specials-strip");
+    specials.forEach(sp=>{
+      const d=MENU.find(m=>m.name===sp.name); if(!d) return;
+      const m=metaFor(d), price = m.price==null ? "Ask on WhatsApp" : money(m.price)+(m.unit||"");
+      const local="photos/"+slug(d.name)+".jpg", stock=stockUrl(d);
+      const onerr="if(this.src.indexOf('photos/')>-1){this.src=this.dataset.stock}else{this.remove()}";
+      strip.insertAdjacentHTML("beforeend",
+        `<div class="special"><div class="art">${makeArt(d)}<img src="${local}" alt="${sp.name}" loading="lazy" data-stock="${stock}" onerror="${onerr}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><span class="tagw">THIS WEEK</span></div>`+
+        `<div class="sb"><b>${sp.name}</b><span>${sp.note} · ${price}</span></div></div>`);
+    });
+  }
+  function renderReviews(){
+    const g=document.getElementById("reviews-grid");
+    reviews.forEach(r=>g.insertAdjacentHTML("beforeend",
+      `<div class="review reveal"><div class="stars">★★★★★</div><p>“${r.text}”</p><div class="who">— ${r.who}</div></div>`));
+  }
+  function imgTag(d){
+    const local="photos/"+slug(d.name)+".jpg", stock=stockUrl(d);
+    const onerr="if(this.src.indexOf('photos/')>-1){this.src=this.dataset.stock}else{this.remove()}";
+    return `${makeArt(d)}<img src="${local}" data-stock="${stock}" loading="lazy" alt="${d.name}" onerror="${onerr}">`;
+  }
+  function renderPopular(){
+    const strip=document.getElementById("popular-strip");
+    (CONFIG.popular||[]).forEach(name=>{
+      const d=MENU.find(m=>m.name===name); if(!d) return;
+      const m=metaFor(d), price=m.price==null?"Ask":money(m.price)+(m.unit||"");
+      strip.insertAdjacentHTML("beforeend",
+        `<div class="pop-card"><div class="ph">${imgTag(d)}</div><div class="pb"><div class="pn">${d.name}</div>`+
+        `<div class="pr"><span class="pp">${price}</span><button class="add" data-inc="${d.name}">＋</button></div></div></div>`);
+    });
+    strip.querySelectorAll("[data-inc]").forEach(b=>b.onclick=()=>change(b.dataset.inc,1));
+  }
+  function renderCombos(){
+    const g=document.getElementById("combo-grid");
+    (CONFIG.combos||[]).forEach(c=>{
+      const items=c.items.map(i=>`<li>${i}</li>`).join("");
+      const price=c.price==null?'<span class="cp" style="color:var(--accent);font-size:.86rem">Ask on WhatsApp</span>':`<span class="cp">${money(c.price)}</span>`;
+      const badge=c.badge?`<span class="cbadge">${c.badge}</span>`:"";
+      const serves=c.serves?`<div class="cserves">${c.serves}</div>`:"";
+      const link=waBase("Hi "+brand+", I'd like to order the "+c.name+(c.serves?" ("+c.serves+")":"")+":\n"+c.items.map(i=>"• "+i).join("\n")+(c.price!=null?"\nPrice: "+money(c.price):"")+"\n(Paying cash on pickup)");
+      g.insertAdjacentHTML("beforeend",
+        `<div class="combo reveal${c.badge==='Most popular'?' feat':''}">${badge}<h3>${c.name}</h3>${serves}<ul>${items}</ul><div class="cf">${price}<a class="btn btn-dark" href="${link}" target="_blank">Order pack</a></div></div>`);
+    });
+  }
+  function renderTiffin(){
+    const g=document.getElementById("tiffin-grid"); const plans=CONFIG.tiffinPlans||["3 days/week","5 days/week"];
+    (CONFIG.tiffin||[]).forEach(t=>{
+      const btns=plans.map(p=>{const link=waBase("Hi "+brand+", I'd like the "+t.name+" — "+p+" plan ("+t.desc+"). Please share the price and how to start. (Paying cash)");return `<a href="${link}" target="_blank">${p}</a>`;}).join("");
+      g.insertAdjacentHTML("beforeend",`<div class="tpack reveal"><h3>${t.name}</h3><div class="td">${t.desc}</div><div class="tp">${btns}</div></div>`);
+    });
+  }
+  const TAB={sabji:"Sabjis",appetizer:"Appetizers",farsan:"Farsan",dessert:"Sweets"};
+  function buildTabs(){
+    const t=document.getElementById("cattabs");
+    t.innerHTML=SECTIONS.filter(s=>MENU.some(d=>d.cat===s.cat)).map(s=>`<a href="#cat-${s.cat}" data-cat="${s.cat}">${TAB[s.cat]||s.title}</a>`).join("");
+  }
+  let spyObs;
+  function attachSpy(){
+    const tabs=[...document.querySelectorAll('.cattabs a')]; if(!tabs.length) return;
+    if(spyObs) spyObs.disconnect();
+    spyObs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const id=e.target.id.replace('cat-','');tabs.forEach(a=>a.classList.toggle('on',a.dataset.cat===id));}}),{rootMargin:"-130px 0px -65% 0px"});
+    SECTIONS.forEach(s=>{const el=document.getElementById('cat-'+s.cat);if(el)spyObs.observe(el);});
+  }
+
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}}),{threshold:.08});
+  renderSpecials(); renderPopular(); renderCombos(); renderTiffin(); buildTabs(); renderReviews(); render(); updateBar();
+
+  // popular-row scroll nudge: hint there's more to browse
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches){
+    setTimeout(()=>{const s=document.getElementById("popular-strip");
+      if(s&&s.scrollWidth>s.clientWidth+10){s.scrollTo({left:46,behavior:"smooth"});setTimeout(()=>s.scrollTo({left:0,behavior:"smooth"}),700);}},1100);
+  }
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</body>
+</html>
