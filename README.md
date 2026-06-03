@@ -4,7 +4,7 @@
 
 A mobile-first ordering site for a home cook serving fresh, 100% vegetarian Gujarati & Punjabi food to her local community. Customers browse the menu, build an order, and send it in one tap over WhatsApp — paying cash on pickup. No apps, no accounts, no card processing.
 
-🔗 **Live site:** https://g3ds-svg.github.io/cook-site/
+🔗 **Live site:** (https://gayatriswaminathan.github.io/cook-site/)
 
 ---
 
